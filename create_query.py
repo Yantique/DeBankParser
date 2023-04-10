@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from jinja2 import Template
 
 import re
 
@@ -15,30 +16,19 @@ def valid_date_format(given_date):
 def create_query(start_date):
     start_date = valid_date_format(start_date)
     end_date = start_date + timedelta(days=7)
+    with open('query_template.sql', 'r') as f:
+        data = ''.join(f.readlines())
+    template = Template(data)
+    with open('result.csv', 'r') as f:
+        f.readline()
+        wallets = []
+        for line in f:
+            wallets.append("\\" + line.split(',')[0][1:])
+    query = template.render(start_date=start_date, end_date=end_date, wallets=wallets)
     with open('query.sql', 'w') as f:
-        f.write('SELECT *, "quantity" * "price" as "total"\n')
-        f.write('FROM (\n')
-        f.write('    WITH token_prices AS (\n')
-        f.write('        SELECT "median_price", "contract_address"\n')
-        f.write('        FROM (\n')
-        f.write('            SELECT "median_price", "contract_address", row_number() OVER (PARTITION BY "contract_address")\n')
-        f.write('            FROM dex."view_token_prices"\n')
-        f.write(f"            WHERE \"hour\" between '{start_date}' AND '{end_date}') AS raw_data\n")
-        f.write('        WHERE row_number = 1)\n')
-        f.write('    SELECT DISTINCT "token_address", "token_symbol", SUM("amount") OVER (PARTITION BY "token_address") AS quantity, "median_price" AS price\n')
-        f.write('    FROM erc20."view_token_balances_daily"\n')
-        f.write('    JOIN token_prices ON token_prices."contract_address" = erc20."view_token_balances_daily"."token_address"\n')
-        with open('result.csv') as g:
-            g.readline()
-            wallet_address = "\\" + g.readline().split(',')[0][1:]
-            f.write(f"    WHERE (\"wallet_address\" = '{wallet_address}'")
-            for line in g:
-                wallet_address = "\\" + line.split(',')[0][1:]
-                f.write(f" OR\n           \"wallet_address\" = '{wallet_address}'")
-            f.write(f") AND \"amount\" > 0 AND \"day\" = '{start_date} 00:00') AS data\n")
-        f.write('ORDER BY "total" DESC')
+        f.write(query)
     print('Query Created')
 
 
 if __name__ == '__main__':
-    create_query(input("Enter date: "))
+    create_query(input("Enter date (yyyy-mm-dd): "))

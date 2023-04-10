@@ -5,12 +5,21 @@ import time
 import json
 import requests
 
-# Global Params
-NUMBER_OF_PAGES = 20
-DATE = '2023-03-10'
+
+def valid_num_pages(value):
+    while True:
+        try:
+            value = int(value)
+            if 1 < value < 1000:
+                return value
+            else:
+                value = input('The value should be between 1 and 1000.\nEnter the number of pages: ')
+        except ValueError:
+            value = input('The value should be between 1 and 1000.\nEnter the number of pages: ')
 
 
 def get_data(pages):
+    pages = valid_num_pages(pages)
     headers = {
         'authority': 'api.debank.com',
         'accept': '*/*',
@@ -52,5 +61,5 @@ def get_data(pages):
 
 
 if __name__ == '__main__':
-    get_data(NUMBER_OF_PAGES)
-    create_query(DATE)
+    get_data(input("Enter the number of pages (1 page = 50 wallets): "))
+    create_query(input("Enter date (yyyy-mm-dd): "))
